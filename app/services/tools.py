@@ -42,8 +42,11 @@ def execute_tool(
     except json.JSONDecodeError:
         raise ValueError("Invalid tool arguments.")
 
+    if not isinstance(args, dict):
+        raise ValueError("Tool arguments must be a JSON object.")
+
     if args:
-        raise ValueError("This tool does not accept arguments.")
+        print("Warning: Ignoring unexpected tool arguments:", args)
 
     # เรียกใช้ฟังก์ชันคำนวณที่เราเขียนไว้
     result = calculate_receipt(receipt)
