@@ -84,6 +84,7 @@ Receipt text:
     data = json.loads(result)
 
     # ตรวจสอบข้อมูลด้วย Pydantic
+    # Pydantic ตรวจสอบ JSONNNNN
     receipt = Receipt.model_validate(data)
 
     return receipt
