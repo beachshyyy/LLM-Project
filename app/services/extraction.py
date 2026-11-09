@@ -8,7 +8,8 @@ from app.services.retriever import retrieve
 def extract_receipt(
     ocr_text: str,
     return_sources=False,
-    use_retrieval=True
+    use_retrieval=True,
+    retrieval_top_k=2
 ):
     """
     รับข้อความ OCR ค้นหาความรู้ที่เกี่ยวข้อง
@@ -24,7 +25,10 @@ def extract_receipt(
 
     {ocr_text[:1500]}
     """
-        retrieved_docs = retrieve(query, top_k=2)
+        retrieved_docs = retrieve(
+            query,
+            top_k=retrieval_top_k
+        )
 
     # รวมเนื้อหาที่ค้นพบ
     context = "\n\n".join(

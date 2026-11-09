@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 EXCEL_FILE = BASE_DIR / "evaluation" / "ground_truth.xlsx"
 IMAGE_DIR = BASE_DIR / "evaluation" / "dataset" / "images"
-OUTPUT_FILE = BASE_DIR / "evaluation" / "evaluation_results.csv"
+OUTPUT_FILE = BASE_DIR / "evaluation" / "evaluation_results_topk1.csv"
 
 
 def normalize_amount(value):
@@ -64,69 +64,91 @@ def evaluate():
             print("Image not found. Skipping.")
             continue
 
+        # OCR ทำครั้งเดียว ใช้ร่วมกันทั้งสองวิธี
         try:
-            # OCR (ทำครั้งเดียว ใช้ร่วมกันทั้งสองวิธี)
             from PIL import Image
 
             image = Image.open(image_path)
             ocr_text = extract_text(image)
 
-            # Baseline: ไม่ใช้ Retrieval
+        except Exception as error:
+            print(f"OCR Error: {error}")
+
+            results.append({
+                "filename": filename,
+                "gold_total": str(normalize_amount(gold_total)),
+                "baseline_total": "",
+                "baseline_correct": False,
+                "baseline_error": f"OCR Error: {error}",
+                "rag_total": "",
+                "rag_correct": False,
+                "rag_error": f"OCR Error: {error}"
+            })
+            continue
+
+        gold = normalize_amount(gold_total)
+
+        # Baseline: ไม่ใช้ Retrieval
+        baseline_total = None
+        baseline_error = ""
+
+        try:
             baseline_receipt = extract_receipt(
                 ocr_text,
                 use_retrieval=False
             )
-
-            # RAG: ใช้ Retrieval
-            rag_receipt = extract_receipt(
-                ocr_text,
-                use_retrieval=True
-            )
-
-            gold = normalize_amount(gold_total)
             baseline_total = normalize_amount(
                 baseline_receipt.total
+            )
+
+        except Exception as error:
+            baseline_error = str(error)
+            print(f"Baseline Error: {error}")
+
+        # RAG: ใช้ Retrieval
+        rag_total = None
+        rag_error = ""
+
+        try:
+            rag_receipt = extract_receipt(
+                ocr_text,
+                use_retrieval=True,
+                retrieval_top_k=1
             )
             rag_total = normalize_amount(
                 rag_receipt.total
             )
 
-            baseline_correct = (
-                baseline_total is not None
-                and baseline_total == gold
-            )
-
-            rag_correct = (
-                rag_total is not None
-                and rag_total == gold
-            )
-
-            results.append({
-                "filename": filename,
-                "gold_total": str(gold),
-                "baseline_total": str(baseline_total)
-                    if baseline_total is not None else "",
-                "baseline_correct": baseline_correct,
-                "rag_total": str(rag_total)
-                    if rag_total is not None else "",
-                "rag_correct": rag_correct
-            })
-
-            print(f"Gold: {gold}")
-            print(f"Baseline: {baseline_total} ({baseline_correct})")
-            print(f"RAG: {rag_total} ({rag_correct})")
-
         except Exception as error:
-            print(f"Error: {error}")
+            rag_error = str(error)
+            print(f"RAG Error: {error}")
 
-            results.append({
-                "filename": filename,
-                "gold_total": str(gold_total),
-                "baseline_total": "",
-                "baseline_correct": False,
-                "rag_total": "",
-                "rag_correct": False
-            })
+        baseline_correct = (
+            baseline_total is not None
+            and baseline_total == gold
+        )
+
+        rag_correct = (
+            rag_total is not None
+            and rag_total == gold
+        )
+
+        results.append({
+            "filename": filename,
+            "gold_total": str(gold) if gold is not None else "",
+            "baseline_total": str(baseline_total)
+                if baseline_total is not None else "",
+            "baseline_correct": baseline_correct,
+            "baseline_error": baseline_error,
+            "rag_total": str(rag_total)
+                if rag_total is not None else "",
+            "rag_correct": rag_correct,
+            "rag_error": rag_error
+        })
+
+        print(f"Gold: {gold}")
+        print(f"Baseline: {baseline_total} ({baseline_correct})")
+        print(f"RAG: {rag_total} ({rag_correct})")
 
     if not results:
         print("No results to evaluate.")
@@ -159,7 +181,6 @@ def evaluate():
     print(f"Baseline Accuracy: {baseline_accuracy:.2f}%")
     print(f"RAG Accuracy: {rag_accuracy:.2f}%")
     print(f"Results saved to: {OUTPUT_FILE}")
-
 
 if __name__ == "__main__":
     evaluate()

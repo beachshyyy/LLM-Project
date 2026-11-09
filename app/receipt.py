@@ -8,6 +8,18 @@ class ReceiptItem(BaseModel):
     unit_price: float = Field(description="Price per unit")
     total_price: float = Field(description="Total price")
 
+    @field_validator(
+        "quantity",
+        "unit_price",
+        "total_price",
+        mode="before"
+    )
+    @classmethod
+    def clean_item_numbers(cls, value):
+        if isinstance(value, str):
+            value = value.replace(",", "").strip()
+        return value
+
 
 class Receipt(BaseModel):
     merchant: Optional[str] = Field(
@@ -34,3 +46,19 @@ class Receipt(BaseModel):
         default=None,
         description="Final amount paid"
     )
+
+    @field_validator(
+        "subtotal",
+        "discount",
+        "total",
+        mode="before"
+    )
+    @classmethod
+    def clean_receipt_numbers(cls, value):
+        if isinstance(value, str):
+            value = value.replace(",", "").strip()
+
+            if value.lower() in ("", "null", "none"):
+                return None
+
+        return value
