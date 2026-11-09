@@ -6,6 +6,8 @@ from app.services.ocr import extract_text
 from app.services.extraction import extract_receipt
 from app.services.agent import run_agent
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 
 app = FastAPI(
@@ -24,10 +26,7 @@ app.add_middleware(
 
 @app.get("/")
 def home():
-    return {
-        "message": "Welcome to Receipt Analyzer!",
-        "status": "running"
-    }
+    return FileResponse("static/index.html")
 
 
 @app.get("/health")
@@ -108,3 +107,9 @@ async def analyze_receipt(file: UploadFile = File(...)):
             status_code=500,
             detail="An error occurred while analyzing the receipt. Please try again."
         )
+
+app.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static"
+)

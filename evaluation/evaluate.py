@@ -113,7 +113,7 @@ def evaluate():
             rag_receipt = extract_receipt(
                 ocr_text,
                 use_retrieval=True,
-                retrieval_top_k=1
+                retrieval_top_k=2
             )
             rag_total = normalize_amount(
                 rag_receipt.total
