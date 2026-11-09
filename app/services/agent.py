@@ -4,7 +4,7 @@ from app.services.tools import TOOLS, execute_tool
 from app.receipt import Receipt
 
 
-def run_agent(receipt: Receipt) -> str:
+def run_agent(receipt: Receipt) -> dict:
     """
     ให้ LLM ตัดสินใจเรียกใช้ Tool
     และนำผลลัพธ์กลับมาวิเคราะห์
