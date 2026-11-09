@@ -5,11 +5,20 @@ from io import BytesIO
 from app.services.ocr import extract_text
 from app.services.extraction import extract_receipt
 from app.services.agent import run_agent
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(
     title="Receipt Analyzer",
     description="LLM-Powered Receipt Extraction and Calculation System"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5500"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

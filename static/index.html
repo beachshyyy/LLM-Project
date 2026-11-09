@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Analyzer</title>
+ 
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #fff5f8;
+            color: #59434d;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #ffffff;
+            padding: 24px 40px;
+            border-bottom: 2px solid #ffe0eb;
+        }
+
+        header h1 {
+            color: #e78bab;
+            font-size: 26px;
+        }
+
+        header p {
+            color: #b58c9c;
+            margin-top: 6px;
+            font-size: 14px;
+        }
+
+        main {
+            max-width: 850px;
+            margin: 45px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 20px;
+            border: 1px solid #ffe1eb;
+            box-shadow: 0 5px 20px rgba(231, 139, 171, 0.10);
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            font-size: 21px;
+            color: #c96f91;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #ad929d;
+            font-size: 14px;
+            margin-bottom: 22px;
+        }
+
+        .upload-area {
+            border: 2px dashed #f1b6cb;
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            background: #fff8fb;
+        }
+
+        .upload-area p {
+            margin-bottom: 18px;
+            color: #a77b8c;
+        }
+
+        input[type="file"] {
+            max-width: 100%;
+            color: #8f7180;
+        }
+
+        input[type="file"]::file-selector-button {
+            background: #fce0ea;
+            color: #bd6688;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 15px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #f8cbdc;
+        }
+
+        #preview {
+            display: none;
+            max-width: 100%;
+            max-height: 300px;
+            margin: 22px auto 0;
+            border-radius: 12px;
+            border: 2px solid #ffe0eb;
+        }
+
+        button {
+            background: #e99ab6;
+            color: white;
+            border: none;
+            padding: 13px 28px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 22px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #db7fa2;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background: #e8cbd5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #result {
+            display: none;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #f8e8ee;
+            gap: 15px;
+        }
+
+        .result-row span:first-child {
+            color: #ad929d;
+        }
+
+        .total {
+            font-size: 25px;
+            font-weight: bold;
+            color: #d7799e;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: #e4f5e9;
+            color: #579b70;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .error {
+            color: #dc6b7d;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 20px;
+            }
+
+            .card {
+                padding: 22px;
+            }
+        }
+
+        
+        /* ===== Result ===== */
+
+        #result {
+            margin-top: 30px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .result-header h2 {
+            color: #d9789c;
+            margin: 0;
+        }
+
+        .result-label {
+            background: #fff0f5;
+            color: #d9789c;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .result-card {
+            background: #fff9fb;
+            border: 1px solid #ffe3ed;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        .result-card h3 {
+            color: #c96f91;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 17px;
+        }
+
+        .merchant-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #59434d;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 500px;
+        }
+
+        .result-table th {
+            background: #ffeaf1;
+            color: #a95777;
+            padding: 13px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .result-table td {
+            padding: 13px;
+            border-bottom: 1px solid #f7e5ec;
+            color: #59434d;
+            font-size: 14px;
+        }
+
+        .result-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .result-table td:not(:first-child),
+        .result-table th:not(:first-child) {
+            text-align: right;
+        }
+
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 9px 0;
+            color: #795e69;
+        }
+
+        .payment-total {
+            border-top: 1px solid #f1cbd9;
+            margin-top: 12px;
+            padding-top: 18px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #c85f88;
+        }
+
+        .analysis-message {
+            background: #fff0f5;
+            border-left: 4px solid #e99ab6;
+            padding: 16px;
+            border-radius: 8px;
+            color: #795e69;
+            line-height: 1.7;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        
+        /* ===== Status ===== */
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .status-match {
+            background: #e4f7eb;
+            color: #32865a;
+        }
+
+        .status-mismatch {
+            background: #ffe5e8;
+            color: #d64f65;
+        }
+
+        .status-incomplete {
+            background: #fff2d9;
+            color: #b68128;
+        }
+
+
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+        <h1>Receipt Analyzer</h1>
+        <p>LLM-Powered Receipt Extraction and Calculation System</p>
+    </header>
+
+    <main>
+
+        <section class="card">
+            <h2>Upload Receipt</h2>
+            <p class="description">
+                Upload a receipt image to extract and analyze its information.
+            </p>
+
+            <div class="upload-area">
+                <p>Select a receipt image (JPG or PNG)</p>
+
+                <input
+                    type="file"
+                    id="receiptFile"
+                    accept="image/jpeg, image/png"
+                >
+
+                <img id="preview" alt="Receipt Preview">
+            </div>
+
+            <button id="analyzeButton" disabled>
+                Analyze Receipt
+            </button>
+
+            <p id="errorMessage" class="error"></p>
+        </section>
+
+        
+        <section class="card" id="result" style="display: none;">
+            <h2>Analysis Result</h2>
+            <p class="description">
+                Extracted receipt information
+            </p>
+            <div id="receiptDetails"></div>
+        </section>
+
+
+    </main>
+
+</body>
+
+
+
+<script>
+    // ดึง Element จาก html
+    const receiptFile = document.getElementById("receiptFile");
+    const preview = document.getElementById("preview");
+    const analyzeButton = document.getElementById("analyzeButton");
+    const errorMessage = document.getElementById("errorMessage");
+    const resultSection = document.getElementById("result");
+    const receiptDetails = document.getElementById("receiptDetails");
+
+    // Choose File
+    receiptFile.addEventListener("change", function () {
+        const file = receiptFile.files[0];
+
+        if (!file) {
+            preview.style.display = "none";
+            analyzeButton.disabled = true;
+            return;
+        }
+
+        if (!["image/jpeg", "image/png"].includes(file.type)) {
+            errorMessage.textContent = "Please select a JPG or PNG image.";
+            preview.style.display = "none";
+            analyzeButton.disabled = true;
+            return;
+        }
+
+        // แสดงตัวอย่างรูป
+        const imageURL = URL.createObjectURL(file);
+        preview.src = imageURL;
+        preview.style.display = "block";
+
+        analyzeButton.disabled = false;
+        errorMessage.textContent = "";
+    });
+
+
+    // ตอนกดปุ่ม Analyze Receipt
+    analyzeButton.addEventListener("click", async function () {
+
+        const file = receiptFile.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        // ป้องกันกดซ้ำระหว่างประมวลผล
+        analyzeButton.disabled = true;
+        analyzeButton.textContent = "Analyzing...";
+        errorMessage.textContent = "";
+
+        try {
+            // เตรียมไฟล์ส่งไป Backend
+            const formData = new FormData();
+            formData.append("file", file);
+
+            // เรียก API /analyze
+            const response = await fetch("http://127.0.0.1:8000/analyze", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to analyze receipt.");
+            }
+
+            
+            // รับผลลัพธ์ JSON จาก Backend
+            const data = await response.json();
+
+            // ดึงข้อมูลใบเสร็จและผลวิเคราะห์
+            const receipt = data.receipt;
+            const analysis = data.analysis;
+
+            
+            // สร้างตารางรายการสินค้า
+            const itemsHTML = receipt.items.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>${Number(item.unit_price).toFixed(2)}</td>
+                    <td>${Number(item.total_price).toFixed(2)}</td>
+                </tr>
+            `).join("");
+
+            // สร้าง HTML สำหรับแสดงผลลัพธ์
+            receiptDetails.innerHTML = `
+                <div class="result-header">
+                    <h2>Receipt Details</h2>
+                    <span class="result-label">Analysis Complete</span>
+                </div>
+
+                <div class="result-card">
+                    <h3>Merchant Information</h3>
+                    <p class="merchant-name">
+                        ${receipt.merchant || "Merchant not found"}
+                    </p>
+                </div>
+
+                <div class="result-card">
+                    <h3>Purchased Items</h3>
+                    <div class="table-wrapper">
+                        <table class="result-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHTML || `
+                                    <tr>
+                                        <td colspan="4">No items found</td>
+                                    </tr>
+                                `}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <h3>Payment Summary</h3>
+
+                    <div class="payment-row">
+                        <span>Subtotal</span>
+                        <span>${receipt.subtotal ?? "Not found"}</span>
+                    </div>
+
+                    <div class="payment-row">
+                        <span>Discount</span>
+                        <span>${receipt.discount ?? "Not found"}</span>
+                    </div>
+
+                    <div class="payment-row payment-total">
+                        <span>Total</span>
+                        <span>${receipt.total != null
+                            ? Number(receipt.total).toFixed(2)
+                            : "Not found"
+                        }</span>
+                    </div>
+                </div>
+                
+                <div class="result-card">
+                    <h3>Verification Result</h3>
+
+                    <span class="status-badge ${
+                        data.receipt && data.analysis
+                            ? (
+                                data.analysis.toUpperCase().includes("MISMATCH")
+                                    ? "status-mismatch"
+                                    : data.analysis.toUpperCase().includes("INCOMPLETE")
+                                        ? "status-incomplete"
+                                        : "status-match"
+                            )
+                            : "status-incomplete"
+                    }">
+                        ${
+                            data.analysis.toUpperCase().includes("MISMATCH")
+                                ? "MISMATCH"
+                                : data.analysis.toUpperCase().includes("INCOMPLETE")
+                                    ? "INCOMPLETE"
+                                    : "MATCH"
+                        }
+                    </span>
+
+                    <div class="analysis-message">
+                        ${analysis}
+                    </div>
+                </div>
+
+            `;
+
+            // แสดงผล
+            resultSection.style.display = "block";
+
+
+        } catch (error) {
+            console.error(error);
+            errorMessage.textContent = error.message;
+
+        } finally {
+            analyzeButton.disabled = false;
+            analyzeButton.textContent = "Analyze Receipt";
+        }
+    });
+</script>
+</body>
+
+</body>
+
+</html>
