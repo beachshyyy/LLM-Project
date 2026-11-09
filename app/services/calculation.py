@@ -46,30 +46,39 @@ def calculate_receipt(receipt: Receipt) -> dict:
         subtotal_difference = None
         subtotal_match = None
 
-    # คำนวณยอดสุทธิจาก Subtotal และส่วนลด
-    if subtotal is not None and discount is not None:
-        calculated_total = subtotal - discount
-    else:
-        calculated_total = None
+    # คำนวณยอดสุทธิและตรวจสอบกับ Total บนใบเสร็จ
+    if subtotal is not None and printed_total is not None:
 
-    # ตรวจสอบยอดสุทธิกับ Total บนใบเสร็จ
-    if calculated_total is not None and printed_total is not None:
+        effective_discount = (
+            discount if discount is not None
+            else Decimal("0.00")
+        )
+
+        calculated_total = subtotal - effective_discount
+
         total_difference = calculated_total - printed_total
         total_match = total_difference == Decimal("0.00")
+
+    elif subtotal is None and printed_total is not None:
+
+        # กรณีไม่มี Subtotal ให้ตรวจสอบ Items Total กับ Total โดยตรง
+        calculated_total = items_total
+
+        total_difference = calculated_total - printed_total
+        total_match = total_difference == Decimal("0.00")
+
     else:
+        calculated_total = None
         total_difference = None
         total_match = None
 
     # สรุปผลการตรวจสอบ
-    checks = [
-        subtotal_match,
-        total_match
-    ]
-
-    if all(result is True for result in checks):
-        overall_status = "MATCH"
-    elif any(result is False for result in checks):
+    if subtotal_match is False or total_match is False:
         overall_status = "MISMATCH"
+
+    elif total_match is True:
+        overall_status = "MATCH"
+
     else:
         overall_status = "INCOMPLETE"
 

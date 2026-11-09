@@ -3,6 +3,8 @@ from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 
 from app.services.ocr import extract_text
+from app.services.extraction import extract_receipt
+from app.services.agent import run_agent
 
 
 app = FastAPI(
@@ -43,6 +45,39 @@ async def read_receipt(file: UploadFile = File(...)):
         return {
             "filename": file.filename,
             "extracted_text": text
+        }
+
+    except UnidentifiedImageError:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is not a valid image."
+        )
+
+@app.post("/analyze")
+async def analyze_receipt(file: UploadFile = File(...)):
+
+    # อ่านไฟล์ภาพที่ upload
+    contents = await file.read()
+
+    try:
+        # เปิดภาพใบเสร็จ
+        image = Image.open(BytesIO(contents))
+
+        # อ่านข้อความด้วย OCR
+        ocr_text = extract_text(image)
+
+        # แยกข้อมูลใบเสร็จด้วย LLM
+        receipt = extract_receipt(ocr_text)
+
+        # วิเคราะห์ข้อมูลด้วย Agent
+        analysis = run_agent(receipt)
+
+        # ส่งผลลัพธ์กลับไป
+        return {
+            "filename": file.filename,
+            "ocr_text": ocr_text,
+            "receipt": receipt.model_dump(),
+            "analysis": analysis
         }
 
     except UnidentifiedImageError:
