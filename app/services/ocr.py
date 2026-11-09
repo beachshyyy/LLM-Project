@@ -1,10 +1,22 @@
+import os
+import shutil
+
 import pytesseract
 from PIL import Image, ImageOps, ImageEnhance
 
-# ระบุตำแหน่งโปรแกรม Tesseract ใน Windows
-pytesseract.pytesseract.tesseract_cmd = (
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
+
+# ค้นหาตำแหน่ง Tesseract ตามระบบปฏิบัติการ
+tesseract_path = os.getenv("TESSERACT_CMD") or shutil.which("tesseract")
+
+# รองรับ Windows กรณีไม่ได้เพิ่ม Tesseract ไว้ใน PATH
+if not tesseract_path and os.name == "nt":
+    windows_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+    if os.path.exists(windows_path):
+        tesseract_path = windows_path
+
+if tesseract_path:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 
 def extract_text(image: Image.Image) -> str:
