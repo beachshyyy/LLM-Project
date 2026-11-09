@@ -425,8 +425,13 @@
 
         if (!["image/jpeg", "image/png"].includes(file.type)) {
             errorMessage.textContent = "Please select a JPG or PNG image.";
+
+            // ล้างไฟล์ที่ไม่ถูกต้อง
+            receiptFile.value = "";
+            preview.src = "";
             preview.style.display = "none";
             analyzeButton.disabled = true;
+
             return;
         }
 
@@ -473,7 +478,8 @@
             });
 
             if (!response.ok) {
-                throw new Error("Failed to analyze receipt.");
+                const errorData = await response.json();
+                throw new Error(errorData.detail || "Failed to analyze receipt.");
             }
 
             
@@ -586,7 +592,14 @@
 
         } catch (error) {
             console.error(error);
-            errorMessage.textContent = error.message;
+
+            if (error instanceof TypeError) {
+                errorMessage.textContent =
+                    "Unable to connect to the server. Please try again later.";
+            } else {
+                errorMessage.textContent =
+                    error.message || "Something went wrong. Please try again.";
+            }
 
         } finally {
             analyzeButton.disabled = false;

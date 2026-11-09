@@ -97,3 +97,10 @@ async def analyze_receipt(file: UploadFile = File(...)):
             status_code=400,
             detail="Uploaded file is not a valid image."
         )
+
+    except Exception as e:
+        print(f"Error analyzing receipt: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while analyzing the receipt. Please try again."
+        )
