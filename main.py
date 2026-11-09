@@ -79,14 +79,17 @@ async def analyze_receipt(file: UploadFile = File(...)):
         receipt = extract_receipt(ocr_text)
 
         # วิเคราะห์ข้อมูลด้วย Agent
-        analysis = run_agent(receipt)
+        agent_result = run_agent(receipt)
+        analysis = agent_result["message"]
+        calculation = agent_result["calculation"]
 
         # ส่งผลลัพธ์กลับไป
         return {
             "filename": file.filename,
             "ocr_text": ocr_text,
             "receipt": receipt.model_dump(),
-            "analysis": analysis
+            "analysis": analysis,
+            "calculation": calculation
         }
 
     except UnidentifiedImageError:

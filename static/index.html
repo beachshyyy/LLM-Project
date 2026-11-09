@@ -324,6 +324,31 @@
             color: #b68128;
         }
 
+        
+        /* ===== Loading หมุนๆ ===== */
+
+        .loading-spinner {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
 
     </style>
 
@@ -426,8 +451,15 @@
 
         // ป้องกันกดซ้ำระหว่างประมวลผล
         analyzeButton.disabled = true;
-        analyzeButton.textContent = "Analyzing...";
+        receiptFile.disabled = true;
+
+        analyzeButton.innerHTML = `
+            <span class="loading-spinner"></span>
+            Analyzing Receipt...
+        `;
+
         errorMessage.textContent = "";
+        resultSection.style.display = "none";
 
         try {
             // เตรียมไฟล์ส่งไป Backend
@@ -451,6 +483,17 @@
             // ดึงข้อมูลใบเสร็จและผลวิเคราะห์
             const receipt = data.receipt;
             const analysis = data.analysis;
+            const calculation = data.calculation;
+
+            // รับ status จาก Calculation Tool
+            const status = calculation?.overall_status ?? "INCOMPLETE";
+            const statusClasses = {
+                MATCH: "status-match",
+                MISMATCH: "status-mismatch",
+                INCOMPLETE: "status-incomplete"
+            };
+
+            const statusClass = statusClasses[status] ?? "status-incomplete";
 
             
             // สร้างตารางรายการสินค้า
@@ -522,27 +565,12 @@
                     </div>
                 </div>
                 
+                
                 <div class="result-card">
                     <h3>Verification Result</h3>
 
-                    <span class="status-badge ${
-                        data.receipt && data.analysis
-                            ? (
-                                data.analysis.toUpperCase().includes("MISMATCH")
-                                    ? "status-mismatch"
-                                    : data.analysis.toUpperCase().includes("INCOMPLETE")
-                                        ? "status-incomplete"
-                                        : "status-match"
-                            )
-                            : "status-incomplete"
-                    }">
-                        ${
-                            data.analysis.toUpperCase().includes("MISMATCH")
-                                ? "MISMATCH"
-                                : data.analysis.toUpperCase().includes("INCOMPLETE")
-                                    ? "INCOMPLETE"
-                                    : "MATCH"
-                        }
+                    <span class="status-badge ${statusClass}">
+                        ${status}
                     </span>
 
                     <div class="analysis-message">
@@ -562,6 +590,7 @@
 
         } finally {
             analyzeButton.disabled = false;
+            receiptFile.disabled = false;
             analyzeButton.textContent = "Analyze Receipt";
         }
     });

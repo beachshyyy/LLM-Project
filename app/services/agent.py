@@ -1,4 +1,4 @@
-
+import json
 from app.services.llm import client, MODEL_NAME
 from app.services.tools import TOOLS, execute_tool
 from app.receipt import Receipt
@@ -39,6 +39,8 @@ Use the available tool to verify the receipt.
 """
         }
     ]
+    
+    calculation_result = None
 
     # จำกัดจำนวนรอบเพื่อป้องกัน Agent ทำงานวนไม่สิ้นสุด
     max_iterations = 5
@@ -62,7 +64,10 @@ Use the available tool to verify the receipt.
 
         # ถ้า LLM ไม่เรียก Tool แสดงว่าต้องการตอบกลับ
         if not assistant_message.tool_calls:
-            return assistant_message.content or "Agent returned no response."
+            return {
+                "message": assistant_message.content or "Agent returned no response.",
+                "calculation": calculation_result
+            }
 
         # บันทึกคำสั่งของ LLM ลงใน Conversation
         messages.append(
@@ -76,16 +81,11 @@ Use the available tool to verify the receipt.
             arguments = tool_call.function.arguments
 
             try:
-                tool_result = execute_tool(
-                    tool_name=tool_name,
-                    arguments=arguments,
-                    receipt=receipt
-                )
+                tool_result = execute_tool(tool_name, arguments, receipt)
 
-                print("\n===== TOOL EXECUTION =====")
-                print("Tool name:", tool_name)
-                print("Tool result:", tool_result)
-                print("==========================")
+                # เก็บผลการคำนวณจาก Calculation Tool
+                if tool_name == "calculate_receipt":
+                    calculation_result = json.loads(tool_result)
 
             except Exception as error:
                 tool_result = str(error)
