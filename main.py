@@ -76,7 +76,10 @@ async def analyze_receipt(file: UploadFile = File(...)):
         ocr_text = extract_text(image)
 
         # แยกข้อมูลใบเสร็จด้วย LLM
-        receipt = extract_receipt(ocr_text)
+        receipt, sources = extract_receipt(
+            ocr_text,
+            return_sources=True
+        )
 
         # วิเคราะห์ข้อมูลด้วย Agent
         agent_result = run_agent(receipt)
@@ -89,7 +92,8 @@ async def analyze_receipt(file: UploadFile = File(...)):
             "ocr_text": ocr_text,
             "receipt": receipt.model_dump(),
             "analysis": analysis,
-            "calculation": calculation
+            "calculation": calculation,
+            "sources": sources
         }
 
     except UnidentifiedImageError:

@@ -1,19 +1,51 @@
 import json
 
-from pydantic import ValidationError
-
 from app.receipt import Receipt
 from app.services.llm import client, MODEL_NAME
+from app.services.retriever import retrieve
 
 
-def extract_receipt(ocr_text: str) -> Receipt:
+def extract_receipt(
+    ocr_text: str,
+    return_sources=False,
+    use_retrieval=True
+):
     """
-    รับข้อความ OCR แล้วใช้ LLM แยกข้อมูลใบเสร็จ
-    จากนั้นตรวจสอบข้อมูลด้วย Pydantic
+    รับข้อความ OCR ค้นหาความรู้ที่เกี่ยวข้อง
+    แล้วใช้ LLM สกัดข้อมูลและตรวจสอบด้วย Pydantic
     """
+
+    retrieved_docs = []
+
+    if use_retrieval:
+        query = f"""
+    Identify receipt terminology and amount labels
+    that may help analyze this receipt:
+
+    {ocr_text[:1500]}
+    """
+        retrieved_docs = retrieve(query, top_k=2)
+
+    # รวมเนื้อหาที่ค้นพบ
+    context = "\n\n".join(
+        f"[Source: {doc['source']}]\n{doc['text']}"
+        for doc in retrieved_docs
+    )
+
+    if not context:
+        context = "No additional context provided."
 
     prompt = f"""
 You are a receipt data extraction assistant.
+
+Use the retrieved context as general guidance only.
+The receipt OCR text is the primary source of truth.
+If the context conflicts with the receipt, follow the receipt.
+
+Retrieved Context:
+---
+{context}
+---
 
 Your task is to extract structured information from the receipt text.
 
@@ -29,9 +61,9 @@ Return ONLY a valid JSON object with this structure:
             "total_price": 0.00
         }}
     ],
-    "subtotal": "number or null",
-    "discount": "number or null",
-    "total": "number or null"
+    "subtotal": null,
+    "discount": null,
+    "total": null
 }}
 
 Rules:
@@ -53,11 +85,10 @@ Rules:
   to identify all purchased products.
 - Do not skip purchased products, even if their names
   are unclear or partially recognized by OCR.
-- Do not calculate or derive subtotal from the extracted
-  items. Extract subtotal directly from the receipt.
+- Do not calculate or derive subtotal from extracted items.
+- Extract subtotal directly from the receipt.
 - Do not assume subtotal equals the sum of extracted items.
-- If a product name is unclear, preserve the readable
-  text instead of omitting the item.
+- If a product name is unclear, preserve readable text.
 
 Receipt text:
 ---
@@ -65,7 +96,6 @@ Receipt text:
 ---
 """
 
-    # ส่งข้อความ to Gemma
     response = client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
@@ -77,13 +107,11 @@ Receipt text:
         temperature=0
     )
 
-    # รับข้อความตอบกลับจาก LLM
     result = response.choices[0].message.content
 
     if not result:
         raise ValueError("LLM returned an empty response.")
 
-    # ลบ Markdown Code Fence ถ้ามี
     result = result.strip()
 
     if result.startswith("```json"):
@@ -95,13 +123,18 @@ Receipt text:
     if result.endswith("```"):
         result = result[:-3]
 
-    result = result.strip()
+    data = json.loads(result.strip())
 
-    # แปลง JSON Text เป็น Python Dictionary
-    data = json.loads(result)
-
-    # ตรวจสอบข้อมูลด้วย Pydantic
-    # Pydantic ตรวจสอบ JSONNNNN
     receipt = Receipt.model_validate(data)
+
+    if return_sources:
+        sources = [
+            {
+                "source": doc["source"],
+                "score": round(doc["score"], 4)
+            }
+            for doc in retrieved_docs
+        ]
+        return receipt, sources
 
     return receipt

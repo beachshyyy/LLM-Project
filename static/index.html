@@ -413,6 +413,18 @@
     const resultSection = document.getElementById("result");
     const receiptDetails = document.getElementById("receiptDetails");
 
+    function escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
     // Choose File
     receiptFile.addEventListener("change", function () {
         const file = receiptFile.files[0];
@@ -490,6 +502,7 @@
             const receipt = data.receipt;
             const analysis = data.analysis;
             const calculation = data.calculation;
+            const sources = data.sources ?? [];
 
             // รับ status จาก Calculation Tool
             const status = calculation?.overall_status ?? "INCOMPLETE";
@@ -505,7 +518,7 @@
             // สร้างตารางรายการสินค้า
             const itemsHTML = receipt.items.map(item => `
                 <tr>
-                    <td>${item.name}</td>
+                    <td>${escapeHTML(item.name)}</td>
                     <td>${item.quantity}</td>
                     <td>${Number(item.unit_price).toFixed(2)}</td>
                     <td>${Number(item.total_price).toFixed(2)}</td>
@@ -522,7 +535,7 @@
                 <div class="result-card">
                     <h3>Merchant Information</h3>
                     <p class="merchant-name">
-                        ${receipt.merchant || "Merchant not found"}
+                        ${escapeHTML(receipt.merchant || "Merchant not found")}
                     </p>
                 </div>
 
@@ -572,6 +585,7 @@
                 </div>
                 
                 
+                
                 <div class="result-card">
                     <h3>Verification Result</h3>
 
@@ -580,8 +594,23 @@
                     </span>
 
                     <div class="analysis-message">
-                        ${analysis}
+                        ${escapeHTML(analysis)}
                     </div>
+                </div>
+
+                <div class="result-card">
+                    <h3>Retrieved Sources</h3>
+
+                    ${
+                        sources.length > 0
+                        ? sources.map(source => `
+                            <div class="source-item">
+                                <strong>${escapeHTML(source.source)}</strong>
+                                <p>Similarity Score: ${Number(source.score).toFixed(4)}</p>
+                            </div>
+                        `).join("")
+                        : "<p>No sources retrieved.</p>"
+                    }
                 </div>
 
             `;
